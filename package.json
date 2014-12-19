@@ -1,0 +1,32 @@
+{
+  "name": "hubot-lunch",
+  "description": "An easy way to keep track of lunch in your office",
+  "version": "0.1.0",
+  "author": "JP Silvashy <jpsilvashy@gmail.com>",
+  "license": "MIT",
+
+  "keywords": [
+    "hubot",
+    "hubot-scripts",
+    "hubot-lunch",
+    "lunch"
+  ],
+
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/shuddle/lunchbot.git"
+  },
+
+  "bugs": {
+    "url": "https://github.com/shuddle/lunchbot/issues"
+  },
+
+  "dependencies": {
+    "coffee-script": "~1.6",
+    "cron": "1.0.5",
+    "time": "0.11.0"
+  },
+
+  "main": "index.coffee"
+
+}
