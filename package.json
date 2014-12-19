@@ -14,11 +14,11 @@
 
   "repository": {
     "type": "git",
-    "url": "git://github.com/shuddle/lunchbot.git"
+    "url": "git://github.com/shuddle/hubot-lunch.git"
   },
 
   "bugs": {
-    "url": "https://github.com/shuddle/lunchbot/issues"
+    "url": "https://github.com/shuddle/hubot/issues"
   },
 
   "dependencies": {
