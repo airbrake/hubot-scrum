@@ -1,7 +1,7 @@
 {
   "name": "hubot-lunch",
   "description": "An easy way to keep track of lunch in your office",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": "JP Silvashy <jpsilvashy@gmail.com>",
   "license": "MIT",
 
