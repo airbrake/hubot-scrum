@@ -89,7 +89,7 @@ module.exports = (robot) ->
     
     clear: (time) -> 
       new CronJob(time, ->
-        lunch.clear()
+        robot.brain.data.lunch = {}
         return
       , null, true, TIMEZONE)
 
