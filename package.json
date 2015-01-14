@@ -1,24 +1,24 @@
 {
-  "name": "hubot-lunch",
-  "description": "An easy way to keep track of lunch in your office",
+  "name": "hubot-scrum",
+  "description": "An easy way to keep track of your daily scrum with your team!",
   "version": "0.1.2",
-  "author": "JP Silvashy <jpsilvashy@gmail.com>",
+  "author": ["Morgan McDaris <morganmcdaris@gmail.com>", "JP Silvashy <jpsilvashy@gmail.com>"],
   "license": "MIT",
 
   "keywords": [
     "hubot",
     "hubot-scripts",
-    "hubot-lunch",
-    "lunch"
+    "hubot-scrum",
+    "scrum"
   ],
 
   "repository": {
     "type": "git",
-    "url": "git://github.com/shuddle/hubot-lunch.git"
+    "url": "git://github.com/airbrake/hubot-scrum.git"
   },
 
   "bugs": {
-    "url": "https://github.com/shuddle/hubot/issues"
+    "url": "https://github.com/airbrake/hubot-scrum/issues"
   },
 
   "dependencies": {
