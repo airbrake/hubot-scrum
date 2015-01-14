@@ -1,34 +1,35 @@
-# hubot-lunch
+# Scrumbot
 
-A bot to help keep track of lunch orders for your office.
+Remember Funscrum! Of course you do! Wouldn't it be great if you could do a daily scrum by talking directly to your bot on Slack or Hipchat?!
+
+Scrumbot bugs your teammembers every morning, then annouces everyone's scrum at a specific time.
+
+http://tech.co/wp-content/uploads/2012/12/Screen-Shot-2012-12-06-at-2.03.43-PM.png
 
 ## Installing
 
 Add dependency to `package.json`:
 
 ```console
-$ npm install --save hubot-lunch
+$ npm install --save scrumbot
 ```
 
 Include package in Hubot's `external-scripts.json`:
 
 ```json
-["hubot-lunch"]
+["scrumbot"]
 ```
 
 ## Configuration
 
-    HUBOT_LUNCHBOT_CLEAR_AT  # When to clear the current lunch order, use cron style syntax (defaults to: 0 0 0 * * *)
-    HUBOT_LUNCHBOT_NOTIFY_AT # When to notify the HUBOT_LUNCHBOT_ROOM to start the lunch order, use cron style syntax (defaults to: 0 0 10 * * 4)
-    HUBOT_LUNCHBOT_ROOM      # xxxxx_room_name@conf.hipchat.com
+    HUBOT_SCRUMBOT_CLEAR_AT  # When to clear the current scrum, use cron style syntax (defaults to: 0 0 0 * * *)
+    HUBOT_SCRUMBOT_NOTIFY_AT # When to notify the HUBOT_SCRUMBOT_ROOM to start the scrum, use cron style syntax (defaults to: 0 0 10 * * 4)
+    HUBOT_SCRUMBOT_ROOM      # xxxxx_room_name@conf.hipchat.com
 
 ## Commands
 
-    hubot I want <food>                       # adds <food> to the list of items to be ordered
-    hubot remove my order                     # removes your order
-    hubot cancel all orders                   # cancels all the orders
-    hubot lunch orders                        # lists all orders
-    hubot who should order|pickup|get lunch?  # randomly selects person to either order or pickup lunch
-    hubot lunch help                          # displays this help message
+    hubot scrum                            # lists all orders
+    hubot what is <username> doing today?  # randomly selects person to either order or pickup lunch
+    hubot scrum help                       # displays this help message
 
 
