@@ -1,44 +1,39 @@
 # Description:
-#   Help keep track of whats being ordered for lunch
+#   Team members enter their scrum and scrumbot will send a summary.
 #
 # Dependencies:
 #    "cron": "",
 #    "time": ""
 #
 # Configuration:
-#   HUBOT_LUNCHBOT_ROOM
-#   HUBOT_LUNCHBOT_NOTIFY_AT
-#   HUBOT_LUNCHBOT_CLEAR_AT
+#   HUBOT_SCRUMBOT_ROOM
+#   HUBOT_SCRUMBOT_NOTIFY_AT
+#   HUBOT_SCRUMBOT_CLEAR_AT
 #   TZ # eg. "America/Los_Angeles"
 #
 # Commands:
-#   hubot I want <food> - adds <food> to the list of items to be ordered
-#   hubot remove my order <food> - just removes the users lunch order
-#   hubot lunch orders - list all the items in the current lunch order
-#   hubot cancel all orders - clears out list of items to be ordered
-#   hubot who should <order|pickup|get> lunch? - help choose who is responsible for lunch
-#   hubot lunch help - display help message
+#   hubot scrum                            # lists all orders
+#   hubot what is <username> doing today?  # randomly selects person to either order or pickup lunch
+#   hubot scrum help                       # displays this help message
+#
 # Notes:
-#   nom nom nom
+#   We were sad to see funscrum die so we are making this now!
 #
-# Author:
+# Authors:
 #   @jpsilvashy
-#
+#   @mmcdaris
 
 ##
-# What room do you want to post the lunch messages in?
-ROOM = process.env.HUBOT_LUNCHBOT_ROOM
+# What room do you want to post the scrum summary in?
+ROOM = process.env.HUBOT_SCRUMBOT_ROOM
 
 ##
 # Explain how to use the lunch bot
 MESSAGE = """
-Let's order lunch!!!1 You can say:
-bot I want the BLT Sandwich - adds "BLT Sandwich" to the list of items to be ordered
-bot remove my order - removes your order
-bot cancel all orders - cancels all the orders
-bot lunch orders - lists all orders
-bot who should order|pickup|get lunch? - randomly selects person to either order or pickup lunch
-bot lunch help - displays this help message
+ USAGE:
+ hubot scrum                            # start your scrum
+ hubot what is <username> doing today?  # look up other team member scrum activity
+ hubot scrum help                       # displays help message
 """
 
 ##
@@ -47,27 +42,27 @@ TIMEZONE = process.env.TZ
 
 ##
 # Default lunch time
-NOTIFY_AT = process.env.HUBOT_LUNCHBOT_NOTIFY_AT || '0 0 11 * * *' # 11am everyday
+NOTIFY_AT = process.env.HUBOT_SCRUMBOT_NOTIFY_AT || '0 0 11 * * *' # 11am everyday
 
 ##
 # clear the lunch order on a schedule
-CLEAR_AT = process.env.HUBOT_LUNCHBOT_CLEAR_AT || '0 0 0 * * *' # midnight
+CLEAR_AT = process.env.HUBOT_SCRUMBOT_CLEAR_AT || '0 0 0 * * *' # midnight
 
 ##
 # setup cron
 CronJob = require("cron").CronJob
 
 module.exports = (robot) ->
-  
+
   ##
   # Define the lunch functions
   lunch =
     get: ->
       Object.keys(robot.brain.data.lunch)
-    
+
     add: (user, item) ->
       robot.brain.data.lunch[user] = item
-      
+
     remove: (user) ->
       delete robot.brain.data.lunch[user]
 
@@ -80,14 +75,14 @@ module.exports = (robot) ->
 
   ##
   # Define things to be scheduled
-  schedule =    
+  schedule =
     notify: (time) ->
       new CronJob(time, ->
         lunch.notify()
         return
       , null, true, TIMEZONE)
-    
-    clear: (time) -> 
+
+    clear: (time) ->
       new CronJob(time, ->
         robot.brain.data.lunch = {}
         return
@@ -100,13 +95,13 @@ module.exports = (robot) ->
   ##
   # Schedule when the order should be cleared at
   schedule.clear CLEAR_AT
-  
+
   ##
   # List out all the orders
   robot.respond /lunch orders$/i, (msg) ->
     orders = lunch.get().map (user) -> "#{user}: #{robot.brain.data.lunch[user]}"
     msg.send orders.join("\n") || "No items in the lunch list."
-  
+
   ##
   # Save what a person wants to the lunch order
   robot.respond /i want (.*)/i, (msg) ->
@@ -124,7 +119,7 @@ module.exports = (robot) ->
   # Cancel the entire order and remove all the items
   robot.respond /cancel all orders/i, (msg) ->
     delete robot.brain.data.lunch
-    lunch.clear()  
+    lunch.clear()
 
   ##
   # Help decided who should either order, pick up or get
