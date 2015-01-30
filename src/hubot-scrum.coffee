@@ -23,8 +23,6 @@
 #   @jpsilvashy
 #   @mmcdaris
 
-console.log("SCRUM LOADED.....")
-
 ##
 # What room do you want to post the scrum summary in?
 ROOM = process.env.HUBOT_SCRUM_ROOM
@@ -58,6 +56,7 @@ CronJob = require("cron").CronJob
 # Setup Mailgun
 Mailgun = require('mailgun').Mailgun
 mailgun = new Mailgun(process.env.HUBOT_MAILGUN_APIKEY)
+FROM_USER = process.env.HUBOT_SCRUM_FROM_USER || "noreply+scrumbot@example.com"
 
 module.exports = (robot) ->
 
@@ -68,7 +67,7 @@ module.exports = (robot) ->
   # need an opt-in feature. It would just annouce in the room, then
   # email to all the users with keys.
   # console.log(robot.brain.data.users)
-  users = robot.brain.data.users["U03CLE1T7"]
+  users = [robot.brain.data.users["U03CLE1T7"]]
   
   ##
   # Define the lunch functions
@@ -92,7 +91,7 @@ module.exports = (robot) ->
     
     mail: ->
       addresses = users.map (user) -> "#{user.name} <#{user.email_address}>"
-      mailgun.sendText "noreply+scrumbot@example.com", [
+      mailgun.sendText FROM_USER, [
         # addresses
       ], "Daily Scrum", "This is the text", "noreply+scrumbot@example.com", {}, (err) ->
         if err
@@ -154,5 +153,6 @@ module.exports = (robot) ->
   ##
   # Just print out the details on how the scrum is configured
   robot.respond /scrum config/i, (msg) ->
+    console.log("channel: ", msg.channel)
     msg.send "ROOM: #{ROOM} \nTIMEZONE: #{TIMEZONE} \nNOTIFY_AT: #{NOTIFY_AT} \nCLEAR_AT: #{CLEAR_AT}\n "
 
