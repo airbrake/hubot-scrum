@@ -63,6 +63,7 @@ module.exports = (robot) ->
       Object.keys(robot.brain.data.scrum)
 
     add: (user, item) ->
+      console.log(user, item)
       robot.brain.data.scrum[user] = item
 
     remove: (user) ->
@@ -99,44 +100,28 @@ module.exports = (robot) ->
   schedule.clear CLEAR_AT
 
   ##
-  # List out all the orders
+  ##
+  # List out all the tasks
   robot.respond /scrum$/i, (msg) ->
-    tasks = scrum.get().map (user) -> "#{user}: #{robot.brain.data.scrum[user]}"
-    msg.send tasks.join("\n") || "No items in the scrum."
+    items = scrum.get().map (user) -> "#{user}: #{robot.brain.data.scrum[user]}"
+    msg.send items.join("\n") || "No items in the scrum."
 
-  ##
-  # Save what a person wants to the lunch order
-  # robot.respond /i want (.*)/i, (msg) ->
-  #   item = msg.match[1].trim()
-  #   scrum.add msg.message.user.name, item
-  #   msg.send "ok, added #{item} to your order."
+  robot.respond /scrum add (.*)/i, (msg) ->
+    item = msg.match[1].trim()
+    scrum.add msg.message.user.name, item
+    msg.send "added #{item}"
 
-  ##
-  # Remove the persons items from the lunch order
-  # robot.respond /remove my order/i, (msg) ->
-  #   lunch.remove msg.message.user.name
-  #   msg.send "ok, I removed your order."
-
-  ##
-  # Cancel the entire order and remove all the items
-  # robot.respond /cancel all orders/i, (msg) ->
-  #   delete robot.brain.data.lunch
-  #   lunch.clear()
-
-  ##
-  # Help decided who should either order, pick up or get
-  # robot.respond /who should (order|pick up|get) lunch?/i, (msg) ->
-  #   orders = lunch.get().map (user) -> user
-  #   key = Math.floor(Math.random() * orders.length)
-  #   msg.send "#{orders[key]} looks like you have to #{msg.match[1]} lunch today!"
+  robot.respond /scrum (clear|reset|setup)/i, (msg) ->
+    delete robot.brain.data.scrum
+    scrum.clear()
 
   ##
   # Display usage details
-  # robot.respond /lunch help/i, (msg) ->
-  #   msg.send MESSAGE
+  robot.respond /scrum help/i, (msg) ->
+    msg.send MESSAGE
 
   ##
-  # Just print out the details on how the lunch bot is configured
-  # robot.respond /lunch config/i, (msg) ->
-  #   msg.send "ROOM: #{ROOM} \nTIMEZONE: #{TIMEZONE} \nNOTIFY_AT: #{NOTIFY_AT} \nCLEAR_AT: #{CLEAR_AT}\n "
+  # Just print out the details on how the scrum is configured
+  robot.respond /scrum config/i, (msg) ->
+    msg.send "ROOM: #{ROOM} \nTIMEZONE: #{TIMEZONE} \nNOTIFY_AT: #{NOTIFY_AT} \nCLEAR_AT: #{CLEAR_AT}\n "
 
