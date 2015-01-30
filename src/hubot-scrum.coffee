@@ -43,19 +43,33 @@ MESSAGE = """
 TIMEZONE = process.env.TZ
 
 ##
-# Default lunch time
+# Default scrum deadline
 NOTIFY_AT = process.env.HUBOT_SCRUM_NOTIFY_AT || '0 0 11 * * *' # 11am everyday
 
 ##
-# clear the lunch order on a schedule
+# Clear the scrum on a schedule
 CLEAR_AT = process.env.HUBOT_SCRUM_CLEAR_AT || '0 0 0 * * *' # midnight
 
 ##
-# setup cron
+# Setup cron
 CronJob = require("cron").CronJob
+
+##
+# Setup Mailgun
+Mailgun = require('mailgun').Mailgun
+mailgun = new Mailgun(process.env.HUBOT_MAILGUN_APIKEY)
 
 module.exports = (robot) ->
 
+  ##
+  # TODO: Select only opted in users to send email to, match
+  # them by user name here, or they could be stored in redis 
+  # as the key for the user that has scrum items, then we never 
+  # need an opt-in feature. It would just annouce in the room, then
+  # email to all the users with keys.
+  # console.log(robot.brain.data.users)
+  users = robot.brain.data.users["U03CLE1T7"]
+  
   ##
   # Define the lunch functions
   scrum =
@@ -75,6 +89,17 @@ module.exports = (robot) ->
 
     notify: ->
       robot.messageRoom ROOM, MESSAGE
+    
+    mail: ->
+      addresses = users.map (user) -> "#{user.name} <#{user.email_address}>"
+      mailgun.sendText "noreply+scrumbot@example.com", [
+        # addresses
+      ], "Daily Scrum", "This is the text", "noreply+scrumbot@example.com", {}, (err) ->
+        if err
+          console.log "[mailgun] Oh noes: " + err
+        else
+          console.log "[mailgun] Success!"
+        return
 
   ##
   # Define things to be scheduled
@@ -119,6 +144,12 @@ module.exports = (robot) ->
   # Display usage details
   robot.respond /scrum help/i, (msg) ->
     msg.send MESSAGE
+
+  ##
+  # Send mailer to everyone on team
+  robot.respond /scrum mail/i, (msg) ->
+    scrum.mail()
+    msg.send "sent!"
 
   ##
   # Just print out the details on how the scrum is configured
