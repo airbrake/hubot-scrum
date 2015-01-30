@@ -1,6 +1,6 @@
 # Scrumbot!
 
-Remember Funscrum! Of course you do! Wouldn't it be great if you could do a daily scrum by talking directly to your bot on Slack or Hipchat?!
+Remember Funscrum!? Of course you do! Wouldn't it be great if you could do a daily scrum by talking directly to your bot on Slack or Hipchat?!
 
 Scrumbot bugs your teammembers every morning, then annouces everyone's scrum at a specific time.
 
