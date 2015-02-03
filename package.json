@@ -2,32 +2,30 @@
   "name": "hubot-scrum",
   "description": "An easy way to keep track of your daily scrum with your team!",
   "version": "0.0.0",
-  "author": ["Morgan McDaris <morganmcdaris@gmail.com>", "JP Silvashy <jpsilvashy@gmail.com>"],
+  "author": [
+    "Morgan McDaris <morganmcdaris@gmail.com>",
+    "JP Silvashy <jpsilvashy@gmail.com>"
+  ],
   "license": "MIT",
-
   "keywords": [
     "hubot",
     "hubot-scripts",
     "hubot-scrum",
     "scrum"
   ],
-
   "repository": {
     "type": "git",
     "url": "git://github.com/airbrake/hubot-scrum.git"
   },
-
   "bugs": {
     "url": "https://github.com/airbrake/hubot-scrum/issues"
   },
-
   "dependencies": {
     "coffee-script": "~1.6",
     "cron": "1.0.5",
-    "time": "0.11.0",
-    "mailgun": "0.5.0"
+    "hubot-auth": "^1.1.2",
+    "mailgun": "0.5.0",
+    "time": "0.11.0"
   },
-
   "main": "index.coffee"
-
 }
