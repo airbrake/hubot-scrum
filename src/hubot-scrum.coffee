@@ -16,6 +16,9 @@
 #   hubot what is <username> doing today?
 #   hubot scrum help
 #
+# Optional Environment Variables:
+#   TIMEZONE
+#
 # Notes:
 #   We were sad to see funscrum die so we are making this now!
 #
@@ -41,18 +44,19 @@ MESSAGE = """
 TIMEZONE = process.env.TZ
 
 ##
-# Default scrum deadline
-NOTIFY_AT = process.env.HUBOT_SCRUM_NOTIFY_AT || '0 0 11 * * *' # 11am everyday
+# Default scrum reminder time
+REMIND_AT = process.env.HUBOT_SCRUM_REMIND_AT || '0 0 6 * * *' # 6am everyday
 
 ##
-# Clear the scrum on a schedule
-CLEAR_AT = process.env.HUBOT_SCRUM_CLEAR_AT || '0 0 0 * * *' # midnight
+# SEND the scrum at 10 am everyday
+NOTIFY_AT = process.env.HUBOT_SCRUM_NOTIFY_AT || '0 0 10 * * *' # 10am
 
 ##
 # Setup cron
 CronJob = require("cron").CronJob
 
 ##
+# set up your free mailgun account here: TODO
 # Setup Mailgun
 Mailgun = require('mailgun').Mailgun
 mailgun = new Mailgun(process.env.HUBOT_MAILGUN_APIKEY)
@@ -62,25 +66,25 @@ module.exports = (robot) ->
 
   ##
   # TODO: Select only opted in users to send email to, match
-  # them by user name here, or they could be stored in redis 
-  # as the key for the user that has scrum items, then we never 
+  # them by user name here, or they could be stored in redis
+  # as the key for the user that has scrum items, then we never
   # need an opt-in feature. It would just annouce in the room, then
   # email to all the users with keys.
   # console.log(robot.brain.data.users)
   users = [robot.brain.data.users["U03CLE1T7"]]
-  
+
   ##
   # Define the lunch functions
   scrum =
     get: ->
       Object.keys(robot.brain.data.scrum)
 
-    add: (user, item) ->
-      console.log(user, item)
-      robot.brain.data.scrum[user] = item
+    add: (key, value) ->
+      console.log(user, value)
+      robot.brain.data.scrum[key] = value
 
-    remove: (user) ->
-      delete robot.brain.data.scrum[user]
+    remove: (key) ->
+      delete robot.brain.data.scrum[key]
 
     clear: ->
       robot.brain.data.scrum = {}
@@ -88,7 +92,7 @@ module.exports = (robot) ->
 
     notify: ->
       robot.messageRoom ROOM, MESSAGE
-    
+
     mail: ->
       addresses = users.map (user) -> "#{user.name} <#{user.email_address}>"
       mailgun.sendText FROM_USER, [
