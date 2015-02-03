@@ -64,6 +64,8 @@ FROM_USER = process.env.HUBOT_SCRUM_FROM_USER || "noreply+scrumbot@example.com"
 
 module.exports = (robot) ->
   console.log(robot.brain.data.users)
+  # console.log(scrum.today())
+
   ##
   # TODO: Select only opted in users to send email to, match
   # them by user name here, or they could be stored in redis
@@ -71,14 +73,20 @@ module.exports = (robot) ->
   # need an opt-in feature. It would just annouce in the room, then
   # email to all the users with keys.
   # console.log(robot.brain.data.users)
-  users = [robot.brain.data.users["U03CLE1T7"]]
+  # users = [robot.brain.data.users["U03CLE1T7"]]
   # NEXT Auth = require('hubot-auth').Auth
   # users = Auth.usersWithRole("scrum")
   # console.log(users)
+  date = new Date().toJSON().slice(0,10)
+  robot.brain.data.scrum = {}
+  robot.brain.data.scrum
 
   ##
   # Define the lunch functions
   scrum =
+    today: ->
+      new Date().toJSON().slice(0,10)   
+ 
     users: ->
       robot.brain.data.scrum
 
@@ -99,6 +107,18 @@ module.exports = (robot) ->
     remind: ->
       console.log("remind all users with scrum role not to forget.")
 
+    scoreForUser: (user) ->
+      # TODO:
+      # Starts with 0 for the day, I've adjusted the point system so there is 
+      # more incentive to get multiple days in a row and go on a longer streak.
+      #
+      # +10 If the user did their scrum (basically, if they have a key present for the current date)
+      # +10 * 1.2 if the user did their scrum for the second day in a row
+      # +10 * 1.3 3 days in a row
+      # " 
+      # +10 * 1.5 five days in a row
+      #
+
     mail: ->
       addresses = users.map (user) -> "#{user.name} <#{user.email_address}>"
       mailgun.sendText FROM_USER, [
@@ -109,6 +129,9 @@ module.exports = (robot) ->
         else
           console.log "[mailgun] Success!"
         return
+  
+  console.log(scrum.today())
+
 
   ##
   # Define things to be scheduled
