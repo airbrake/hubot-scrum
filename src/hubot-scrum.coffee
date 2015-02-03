@@ -63,7 +63,7 @@ mailgun = new Mailgun(process.env.HUBOT_MAILGUN_APIKEY)
 FROM_USER = process.env.HUBOT_SCRUM_FROM_USER || "noreply+scrumbot@example.com"
 
 module.exports = (robot) ->
-
+  console.log(robot.brain.data.users)
   ##
   # TODO: Select only opted in users to send email to, match
   # them by user name here, or they could be stored in redis
@@ -72,10 +72,16 @@ module.exports = (robot) ->
   # email to all the users with keys.
   # console.log(robot.brain.data.users)
   users = [robot.brain.data.users["U03CLE1T7"]]
+  # NEXT Auth = require('hubot-auth').Auth
+  # users = Auth.usersWithRole("scrum")
+  # console.log(users)
 
   ##
   # Define the lunch functions
   scrum =
+    users: ->
+      robot.brain.data.scrum
+
     get: ->
       Object.keys(robot.brain.data.scrum)
 
@@ -86,12 +92,12 @@ module.exports = (robot) ->
     remove: (key) ->
       delete robot.brain.data.scrum[key]
 
-    clear: ->
-      robot.brain.data.scrum = {}
-      robot.messageRoom ROOM, "scrum cleared..."
-
     notify: ->
-      robot.messageRoom ROOM, MESSAGE
+      robot.brain.data.scrum = {}
+      robot.messageRoom ROOM, "scrumarry"
+
+    remind: ->
+      console.log("remind all users with scrum role not to forget.")
 
     mail: ->
       addresses = users.map (user) -> "#{user.name} <#{user.email_address}>"
@@ -107,25 +113,27 @@ module.exports = (robot) ->
   ##
   # Define things to be scheduled
   schedule =
-    notify: (time) ->
+    reminder: (time) ->
       new CronJob(time, ->
-        scrum.notify()
+        scrum.remind()
         return
       , null, true, TIMEZONE)
 
-    clear: (time) ->
+    notify: (time) ->
       new CronJob(time, ->
         robot.brain.data.scrum = {}
         return
       , null, true, TIMEZONE)
 
   ##
-  # Schedule when to alert the ROOM that it's time to start ordering lunch
-  schedule.notify NOTIFY_AT
+  # Schedule the Reminder with a direct message so they don't forget
+  # Don't send this if they already sent it in
+  # instead then send good job and leaderboard changes + streak info
+  schedule.reminder REMIND_AT
 
-  ##
   # Schedule when the order should be cleared at
-  schedule.clear CLEAR_AT
+  ##
+  schedule.notify NOTIFY_AT
 
   ##
   ##
