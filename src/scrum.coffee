@@ -71,14 +71,28 @@ module.exports = (robot) ->
   # need an opt-in feature. It would just annouce in the room, then
   # email to all the users with keys.
   # console.log(robot.brain.data.users)
-  users = [robot.brain.data.users["U03CLE1T7"]]
+  users = [robot.brain.data.users]
+
   # NEXT Auth = require('hubot-auth').Auth
   # users = Auth.usersWithRole("scrum")
   # console.log(users)
 
+  console.log(robot.auth)
   ##
   # Define the lunch functions
   scrum =
+    team: ->
+      console.log("list the team!")
+
+    opt_in: ->
+      console.log("Users add themselves!")
+
+    summary: ->
+      console.log("summary of scrums")
+
+    # Some nice format
+    today: -> new Date().toJSON().slice(0,10)
+
     users: ->
       robot.brain.data.scrum
 
@@ -94,7 +108,7 @@ module.exports = (robot) ->
 
     notify: ->
       robot.brain.data.scrum = {}
-      robot.messageRoom ROOM, "scrumarry"
+      robot.messageRoom ROOM, "summary"
 
     remind: ->
       console.log("remind all users with scrum role not to forget.")
@@ -155,6 +169,11 @@ module.exports = (robot) ->
   # Display usage details
   robot.respond /scrum help/i, (msg) ->
     msg.send MESSAGE
+
+  ##
+  # Display the day(TODO use as a redis key)
+  robot.respond /scrum today/i, (msg) ->
+    msg.send scrum.today()
 
   ##
   # Send mailer to everyone on team
