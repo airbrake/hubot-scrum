@@ -68,8 +68,8 @@ console.log("scrum loaded!")
 # Setup Handlebars
 Handlebars = require('handlebars')
 
-## 
-# Robot 
+##
+# Robot
 module.exports = (robot) ->
 
   ##
@@ -78,14 +78,14 @@ module.exports = (robot) ->
 
   ##
   # Scrum!
-  scrum = 
+  scrum =
 
     # FIXME: This should take a user object
     # and return the total points they have
     # there are a few ways to do this:
-    #   - we just find the last scrum they participated 
+    #   - we just find the last scrum they participated
     #     in copy it and add 10 points, this makes it hard
-    #     to account for bonus points earned for consecutive 
+    #     to account for bonus points earned for consecutive
     #     days of particpating in the scrum
     #   - we scan back and total up all their points ever, grouping
     #     the consecutive ones and applying the appropriate bonus points
@@ -101,24 +101,24 @@ module.exports = (robot) ->
     tallyTeam: (users) ->
       for user in users
         scrum.tally user
-    
+
     ##
-    # Particpating in the scrum currently depends on hubot-auth and the 
-    # user having the role of "scrum". To add the "scrum" role to a user 
+    # Particpating in the scrum currently depends on hubot-auth and the
+    # user having the role of "scrum". To add the "scrum" role to a user
     # you can say `hubot <username> has scrum role`
     participants: ->
       scrumUsers = []
       for own key, user of robot.brain.data.users
         roles = user.roles or []
         if 'scrum' in roles
-          scrumUsers.push user  
+          scrumUsers.push user
       return scrumUsers
-    
+
     ##
     # Just return a key for the current day ie 2015-4-5
     date: ->
-      new Date().toJSON().slice(0,10)   
-      
+      new Date().toJSON().slice(0,10)
+
     today: ->
       robot.brain.data.scrum[scrum.date()] ?= {}
 
@@ -137,8 +137,8 @@ module.exports = (robot) ->
 
   ##
   # Messages presented to the channel, via DM, or email
-  status = 
-    personal: (user) -> 
+  status =
+    personal: (user) ->
       source = """
         hey {{user.name}}, You have {{user.points}} points.
       """
@@ -154,7 +154,7 @@ module.exports = (robot) ->
       """
       template = Handlebars.compile(source)
       template({ users: users })
-          
+
   ##
   # Define things to be scheduled
   schedule =
@@ -195,7 +195,7 @@ module.exports = (robot) ->
   # Responds with details about my user
   robot.respond /scrum my status/i, (msg) ->
     console.log(msg.message.user)
-    msg.send status.personal(msg.message.user)   
+    msg.send status.personal(msg.message.user)
 
   ##
   # Responds with the points for everyone on the team
