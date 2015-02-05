@@ -56,71 +56,76 @@ NOTIFY_AT = process.env.HUBOT_SCRUM_NOTIFY_AT || '0 0 10 * * *' # 10am
 CronJob = require("cron").CronJob
 
 ##
-# set up your free mailgun account here: TODO
+# Set up your free mailgun account here: TODO
 # Setup Mailgun
 Mailgun = require('mailgun').Mailgun
 mailgun = new Mailgun(process.env.HUBOT_MAILGUN_APIKEY)
 FROM_USER = process.env.HUBOT_SCRUM_FROM_USER || "noreply+scrumbot@example.com"
 
+console.log("scrum loaded!")
+
+##
+# Setup Handlebars
+Handlebars = require('handlebars')
+
+## 
+# Robot 
 module.exports = (robot) ->
-  console.log(robot.brain.data.users)
-  # console.log(scrum.today())
 
   ##
-  # TODO: Select only opted in users to send email to, match
-  # them by user name here, or they could be stored in redis
-  # as the key for the user that has scrum items, then we never
-  # need an opt-in feature. It would just annouce in the room, then
-  # email to all the users with keys.
-  # console.log(robot.brain.data.users)
-  # users = [robot.brain.data.users["U03CLE1T7"]]
-  # NEXT Auth = require('hubot-auth').Auth
-  # users = Auth.usersWithRole("scrum")
-  # console.log(users)
-  date = new Date().toJSON().slice(0,10)
-  robot.brain.data.scrum = {}
-  robot.brain.data.scrum
+  # Make sure the scrum object is set
+  robot.brain.data.scrum ?= {}
 
   ##
-  # Define the lunch functions
-  scrum =
-    today: ->
+  # Scrum!
+  scrum = 
+
+    # FIXME: This should take a user object
+    # and return the total points they have
+    # there are a few ways to do this:
+    #   - we just find the last scrum they participated 
+    #     in copy it and add 10 points, this makes it hard
+    #     to account for bonus points earned for consecutive 
+    #     days of particpating in the scrum
+    #   - we scan back and total up all their points ever, grouping
+    #     the consecutive ones and applying the appropriate bonus points
+    #     for those instances
+    #
+    # Right now this just returns a stub of 100
+    #
+    tally: (user) ->
+      user['points'] = 100
+
+    ##
+    # Tally up all the users points
+    tallyTeam: (users) ->
+      for user in users
+        scrum.tally user
+    
+    ##
+    # Particpating in the scrum currently depends on hubot-auth and the 
+    # user having the role of "scrum". To add the "scrum" role to a user 
+    # you can say `hubot <username> has scrum role`
+    participants: ->
+      scrumUsers = []
+      for own key, user of robot.brain.data.users
+        roles = user.roles or []
+        if 'scrum' in roles
+          scrumUsers.push user  
+      return scrumUsers
+    
+    ##
+    # Just return a key for the current day ie 2015-4-5
+    date: ->
       new Date().toJSON().slice(0,10)   
- 
-    users: ->
-      robot.brain.data.scrum
+      
+    today: ->
+      robot.brain.data.scrum[scrum.date()] ?= {}
 
-    get: ->
-      Object.keys(robot.brain.data.scrum)
-
-    add: (key, value) ->
-      console.log(user, value)
-      robot.brain.data.scrum[key] = value
-
-    remove: (key) ->
-      delete robot.brain.data.scrum[key]
-
-    notify: ->
-      robot.brain.data.scrum = {}
-      robot.messageRoom ROOM, "scrumarry"
-
-    remind: ->
-      console.log("remind all users with scrum role not to forget.")
-
-    scoreForUser: (user) ->
-      # TODO:
-      # Starts with 0 for the day, I've adjusted the point system so there is 
-      # more incentive to get multiple days in a row and go on a longer streak.
-      #
-      # +10 If the user did their scrum (basically, if they have a key present for the current date)
-      # +10 * 1.2 if the user did their scrum for the second day in a row
-      # +10 * 1.3 3 days in a row
-      # " 
-      # +10 * 1.5 five days in a row
-      #
-
+    ##
+    # Mail the scrum participants
     mail: ->
-      addresses = users.map (user) -> "#{user.name} <#{user.email_address}>"
+      addresses = scrum.participants().map (user) -> "#{user.name} <#{user.email_address}>"
       mailgun.sendText FROM_USER, [
         # addresses
       ], "Daily Scrum", "This is the text", "noreply+scrumbot@example.com", {}, (err) ->
@@ -129,10 +134,27 @@ module.exports = (robot) ->
         else
           console.log "[mailgun] Success!"
         return
-  
-  console.log(scrum.today())
 
+  ##
+  # Messages presented to the channel, via DM, or email
+  status = 
+    personal: (user) -> 
+      source = """
+        hey {{user.name}}, You have {{user.points}} points.
+      """
+      template = Handlebars.compile(source)
+      template({ user: user })
 
+    leaderboard: (users) ->
+      source = """
+        Hey team, here is the leaderboard:
+        {{#each users}}
+          {{this.name}}: {{this.points}}
+        {{/each}}
+      """
+      template = Handlebars.compile(source)
+      template({ users: users })
+          
   ##
   # Define things to be scheduled
   schedule =
@@ -154,40 +176,29 @@ module.exports = (robot) ->
   # instead then send good job and leaderboard changes + streak info
   schedule.reminder REMIND_AT
 
-  # Schedule when the order should be cleared at
   ##
+  # Schedule when the order should be cleared at
   schedule.notify NOTIFY_AT
 
   ##
-  ##
-  # List out all the tasks
-  robot.respond /scrum$/i, (msg) ->
-    items = scrum.get().map (user) -> "#{user}: #{robot.brain.data.scrum[user]}"
-    msg.send items.join("\n") || "No items in the scrum."
-
-  robot.respond /scrum add (.*)/i, (msg) ->
-    item = msg.match[1].trim()
-    scrum.add msg.message.user.name, item
-    msg.send "added #{item}"
-
-  robot.respond /scrum (clear|reset|setup)/i, (msg) ->
-    delete robot.brain.data.scrum
-    scrum.clear()
+  # Tallys up all the team members points on load
+  scrum.tallyTeam scrum.participants()
 
   ##
-  # Display usage details
-  robot.respond /scrum help/i, (msg) ->
-    msg.send MESSAGE
+  # Handle user input
+  robot.respond /scrum info/i, (msg) ->
+    list = scrum.participants().map (user) -> "#{user.name}: #{user.points}"
+    msg.send list.join("\n") || "Nobody is in the scrum!"
+    console.log scrum.today()
 
   ##
-  # Send mailer to everyone on team
-  robot.respond /scrum mail/i, (msg) ->
-    scrum.mail()
-    msg.send "sent!"
+  # Responds with details about my user
+  robot.respond /scrum my status/i, (msg) ->
+    console.log(msg.message.user)
+    msg.send status.personal(msg.message.user)   
 
   ##
-  # Just print out the details on how the scrum is configured
-  robot.respond /scrum config/i, (msg) ->
-    console.log("channel: ", msg.channel)
-    msg.send "ROOM: #{ROOM} \nTIMEZONE: #{TIMEZONE} \nNOTIFY_AT: #{NOTIFY_AT} \nCLEAR_AT: #{CLEAR_AT}\n "
+  # Responds with the points for everyone on the team
+  robot.respond /scrum leaderboard/i, (msg) ->
+    msg.send status.leaderboard(scrum.participants())
 
