@@ -68,6 +68,22 @@ console.log("scrum loaded!")
 # Setup Handlebars
 Handlebars = require('handlebars')
 
+# Setup Redis to use!
+# You are going to need to set the correct REDIS_URL in your environment
+# heroku config:set REDIS_URL="$(heroku config:get REDISTOGO_URL)"
+##
+Redis = require('redis')
+Url = require('url')
+redisEnvVal = process.env.REDIS_URL || 'redis://localhost:6379'
+redisUrl = Url.parse(redisEnvVal)
+
+client = Redis.createClient(redisUrl.port, redisUrl.hostname)
+client.on "error", (err) ->
+  console.error("RedisError: " + err)
+
+if redisUrl.auth != null
+  client.auth(redisUrl.auth.split(':').pop())
+
 ##
 # Robot
 module.exports = (robot) ->
@@ -76,10 +92,32 @@ module.exports = (robot) ->
   # Make sure the scrum object is set
   robot.brain.data.scrum ?= {}
 
-  ##
+
+  console.log("Hello World Action")
+  # try to cause some errors! Is there some output?
+  #  client.set("Hello", "World", Redis.Rrint) should this raise a Redis?
+
+  # extra output from redis
+  #client.set("Hello", "Extra Output", Redis.print)
+  #client.get("Hello", (err, response) ->
+  #  console.log(err, response))
+  #client.del("Hello")
+
+  # cool non protoype extension of log
+  console.bar = (msg) ->
+    msgBwtnBars = "======" + msg + "  ====\n"
+    console.log(msgBwtnBars)
+
+  console.bar("Hello World with Redis")
+  # no extra output
+  client.set("Hello", "World")
+  client.get("Hello", (err, response) ->
+    console.log(response))
+  client.del("Hello")
+
+
   # Scrum!
   scrum =
-
     # FIXME: This should take a user object
     # and return the total points they have
     # there are a few ways to do this:
@@ -91,10 +129,19 @@ module.exports = (robot) ->
     #     the consecutive ones and applying the appropriate bonus points
     #     for those instances
     #
-    # Right now this just returns a stub of 100
     #
+    entry: (user, label, message) ->
+      client.lpush(user + ":" + label, message)
+
+    givePoints: (user) ->
+      client.zadd("scrum", 10, user)
+
     tally: (user) ->
-      user['points'] = 100
+      client.zscore("scrum", user, (err, response) ->
+        console.log("User: #{user} has #{response}")
+      )
+      client.get("Hello", (err, response) ->
+        console.log(response))
 
     ##
     # Tally up all the users points
@@ -128,12 +175,32 @@ module.exports = (robot) ->
       addresses = scrum.participants().map (user) -> "#{user.name} <#{user.email_address}>"
       mailgun.sendText FROM_USER, [
         # addresses
-      ], "Daily Scrum", "This is the text", "noreply+scrumbot@example.com", {}, (err) ->
+      ], "Daily Scrum", status.summary() , "noreply+scrumbot@example.com", {}, (err) ->
         if err
           console.log "[mailgun] Oh noes: " + err
         else
           console.log "[mailgun] Success!"
         return
+
+  # Note: user fills scrum out and gets points on the scoreboard
+  # Thanks morgan from the past
+  jp = "JP"
+  scrum.entry(jp, "today", "held the dishes gently!")
+  scrum.entry(jp, "blockers", "Too many bottle caps in the garbage disposal")
+  scrum.entry(jp, "yesterday", "Partied!!!!")
+
+  scrum.givePoints(jp)
+
+  andrew = "Andrew"
+  scrum.entry(andrew, "today", "Watched videos and played some games, fostdom")
+  scrum.entry(andrew, "blockers", "None Bitch more work! Bring it on! Bitch again! yea!")
+  scrum.entry(andrew, "yesterday", "Paired with JP and fixed the computer box!")
+
+  scrum.givePoints(andrew)
+
+  scrum.tally(andrew)
+  scrum.tally(jp)
+
 
   ##
   # Messages presented to the channel, via DM, or email
@@ -149,11 +216,25 @@ module.exports = (robot) ->
       source = """
         Hey team, here is the leaderboard:
         {{#each users}}
-          {{this.name}}: {{this.points}}
+          {{name}}: {{points}}
         {{/each}}
       """
       template = Handlebars.compile(source)
       template({ users: users })
+
+    summary: (users)->
+      source = """
+        Scrum Summary for {{ day }}:
+        {{#each users}}
+          {{name}}
+          today: {{today}}
+          yesterday: {{yesterday}}
+          blockers: {{blockers}}
+        {{/each}}
+      """
+      template = Handlebars.compile(source)
+      # Users will be users:[{name:"", today:"", yesterday:"", blockers:""}]
+      template({users: users, date: scrum.today()})
 
   ##
   # Define things to be scheduled
@@ -169,6 +250,7 @@ module.exports = (robot) ->
         robot.brain.data.scrum = {}
         return
       , null, true, TIMEZONE)
+    # set up seasons
 
   ##
   # Schedule the Reminder with a direct message so they don't forget
@@ -198,7 +280,27 @@ module.exports = (robot) ->
     msg.send status.personal(msg.message.user)
 
   ##
+  # Responds with details about my user
+  robot.respond /scrum/i, (msg) ->
+    console.log(msg.message.user)
+    msg.send status.personal(msg.message.user)
+
+  ##
   # Responds with the points for everyone on the team
   robot.respond /scrum leaderboard/i, (msg) ->
     msg.send status.leaderboard(scrum.participants())
 
+  robot.respond /scrum summary/i, (msg) ->
+    msg.send status.summary(scrum.participants())
+
+
+  ##### Making Redis Objects
+  # creating, storing getting
+  scrumBrain =
+
+    addToScrum:
+      (user, key, vaue) ->
+        client.hmset()
+
+    newEntry:
+      (user, scrum) ->
