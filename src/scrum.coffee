@@ -51,6 +51,8 @@ REMIND_AT = process.env.HUBOT_SCRUM_REMIND_AT || '0 0 6 * * *' # 6am everyday
 # SEND the scrum at 10 am everyday
 NOTIFY_AT = process.env.HUBOT_SCRUM_NOTIFY_AT || '0 0 10 * * *' # 10am
 
+REQUIRED_CATEGORIES = ["today", "yesterday"]
+
 ##
 # Setup cron
 CronJob = require("cron").CronJob
@@ -92,30 +94,6 @@ module.exports = (robot) ->
   # Make sure the scrum object is set
   robot.brain.data.scrum ?= {}
 
-
-  console.log("Hello World Action")
-  # try to cause some errors! Is there some output?
-  #  client.set("Hello", "World", Redis.Rrint) should this raise a Redis?
-
-  # extra output from redis
-  #client.set("Hello", "Extra Output", Redis.print)
-  #client.get("Hello", (err, response) ->
-  #  console.log(err, response))
-  #client.del("Hello")
-
-  # cool non protoype extension of log
-  console.bar = (msg) ->
-    msgBwtnBars = "======" + msg + "  ====\n"
-    console.log(msgBwtnBars)
-
-  console.bar("Hello World with Redis")
-  # no extra output
-  client.set("Hello", "World")
-  client.get("Hello", (err, response) ->
-    console.log(response))
-  client.del("Hello")
-
-
   # Scrum!
   scrum =
     # FIXME: This should take a user object
@@ -130,24 +108,49 @@ module.exports = (robot) ->
     #     for those instances
     #
     #
-    entry: (user, label, message) ->
-      client.lpush(user + ":" + label, message)
 
-    givePoints: (user) ->
-      client.zadd("scrum", 10, user)
+
+    ##
+    # Adds the user's entry to the category
+    #
+    entry: (user, category, message) ->
+      @.givePoints(user, category)
+      key = user + ":" + category
+      client.lpush(key, message)
+
+    givePoints: (user, category) ->
+      key = user + ":" + category
+      unless client.exists(key) is 0 and REQUIRED_CATEGORIES.indexOf(category)
+        client.zadd("scrum", 5, user)
 
     tally: (user) ->
       client.zscore("scrum", user, (err, response) ->
-        console.log("User: #{user} has #{response}")
+        if response
+          console.log("Tally says " + user + " has " + response)
+          response
+        else
+          console.log("tallyError: didn't get a response got \'" + response + "\'" )
       )
-      client.get("Hello", (err, response) ->
-        console.log(response))
+
+    # takes a user and a callback
+    # the callback should accept the same arguments
+    getScore: (username, cb) ->
+      client.zscore("scrum", username, (err, score) ->
+        if score
+          return cb(score)
+        else
+          console.log(
+            "getScoreError: didn't get a response got \' #{score} \'\n" + "User was: #{username}"
+          )
+      )
 
     ##
     # Tally up all the users points
     tallyTeam: (users) ->
-      for user in users
-        scrum.tally user
+      if users
+        ( tally(user) for user in users )
+      else
+        console.log("tallyTeamError: No users Given")
 
     ##
     # Particpating in the scrum currently depends on hubot-auth and the
@@ -167,7 +170,8 @@ module.exports = (robot) ->
       new Date().toJSON().slice(0,10)
 
     today: ->
-      robot.brain.data.scrum[scrum.date()] ?= {}
+      new Date().toJSON().slice(0,10)
+
 
     ##
     # Mail the scrum participants
@@ -182,48 +186,35 @@ module.exports = (robot) ->
           console.log "[mailgun] Success!"
         return
 
-  # Note: user fills scrum out and gets points on the scoreboard
-  # Thanks morgan from the past
-  jp = "JP"
-  scrum.entry(jp, "today", "held the dishes gently!")
-  scrum.entry(jp, "blockers", "Too many bottle caps in the garbage disposal")
-  scrum.entry(jp, "yesterday", "Partied!!!!")
-
-  scrum.givePoints(jp)
-
-  andrew = "Andrew"
-  scrum.entry(andrew, "today", "Watched videos and played some games, fostdom")
-  scrum.entry(andrew, "blockers", "None Bitch more work! Bring it on! Bitch again! yea!")
-  scrum.entry(andrew, "yesterday", "Paired with JP and fixed the computer box!")
-
-  scrum.givePoints(andrew)
-
-  scrum.tally(andrew)
-  scrum.tally(jp)
 
 
   ##
   # Messages presented to the channel, via DM, or email
   status =
-    personal: (user) ->
+    sersonal: (user) ->
       source = """
-        hey {{user.name}}, You have {{user.points}} points.
+        =------------------------------------------=
+        hey {{user}}, You have {{score}} points.
+        =------------------------------------------=
       """
       template = Handlebars.compile(source)
-      template({ user: user })
+      template({ user: user.name, score: scrum.getScore(user.name) })
 
     leaderboard: (users) ->
       source = """
+        =------------------------------------------=
         Hey team, here is the leaderboard:
         {{#each users}}
-          {{name}}: {{points}}
+          {{name}}: {{score}}
         {{/each}}
+        =------------------------------------------=
       """
       template = Handlebars.compile(source)
       template({ users: users })
 
     summary: (users)->
       source = """
+        =------------------------------------------=
         Scrum Summary for {{ day }}:
         {{#each users}}
           {{name}}
@@ -231,6 +222,7 @@ module.exports = (robot) ->
           yesterday: {{yesterday}}
           blockers: {{blockers}}
         {{/each}}
+        =------------------------------------------=
       """
       template = Handlebars.compile(source)
       # Users will be users:[{name:"", today:"", yesterday:"", blockers:""}]
@@ -252,7 +244,71 @@ module.exports = (robot) ->
       , null, true, TIMEZONE)
     # set up seasons
 
-  ##
+  # ======================================================================== #
+  #                           Experiment Here!                               #
+  # ======================================================================== #
+  class User
+    constructor: (@name) ->
+      client.zscore("scrum", @name, (err, resp) ->
+        if resp
+          @score = resp
+      )
+
+    setScore: (redis_score) =>
+      @score = redis_score
+
+    updateScore: (cb) ->
+      client.zscore("scrum", @name, (err, resp) ->
+        if resp
+          cb(resp)
+      )
+
+    awardPoints: ->
+      client.zadd("scrum", 10, @name)
+      @.updateScore(@.setScore)
+
+    stats: ->
+      console.log("#{@name} has #{@points} Points!")
+
+    today: (message) ->
+      scrum.entry(@name, "today", message)
+
+    yesterday: (message) ->
+      scrum.entry(@name, "yesterday", message)
+
+    blockers: (message) ->
+      scrum.entry(@name, "blockers", message)
+
+  jp = new User "jp"
+  jp.today("Dishes!")
+  jp.blockers("Too many bottle caps in the garbage disposal")
+  jp.yesterday( "Partied!!!!")
+
+  andrew = new User "andrew"
+  andrew.today("Watched videos and played some games, fostdom")
+  andrew.blockers("None!  more work! Bring it on!")
+  andrew.yesterday("Paired with JP and fixed the computer box!")
+  andrew.awardPoints()
+  console.log(andrew.points)
+  #      SCORE = 0
+  #      setScore = (resp) ->
+  #        console.log("SCORE const being set to:" + resp)
+  #        SCORE = resp
+
+  users = [jp, andrew]
+
+  setTimeout(
+    console.log( status.leaderboard(users) )
+  , 10000)
+  #console.log("Score: " + scrum.getScore(jp.name, setScore)
+  #console.log("getNormalScore Return: " + scrum.getScore(jp.name, setScore) )
+
+  # ======================================================================== #
+  #                           Stop Experimenting                             #
+  # ======================================================================== #
+
+
+
   # Schedule the Reminder with a direct message so they don't forget
   # Don't send this if they already sent it in
   # instead then send good job and leaderboard changes + streak info
@@ -263,44 +319,31 @@ module.exports = (robot) ->
   schedule.notify NOTIFY_AT
 
   ##
-  # Tallys up all the team members points on load
-  scrum.tallyTeam scrum.participants()
-
-  ##
   # Handle user input
-  robot.respond /scrum info/i, (msg) ->
-    list = scrum.participants().map (user) -> "#{user.name}: #{user.points}"
+  robot.hear /start scrum/i, (msg) ->
+    list = scrum.participants().map (user) -> "#{user.name}: #{scrum.getPoints(user)}"
     msg.send list.join("\n") || "Nobody is in the scrum!"
-    console.log scrum.today()
+    console.log("What are you doing today?")
 
   ##
   # Responds with details about my user
-  robot.respond /scrum my status/i, (msg) ->
+  robot.hear /scrum my status/i, (msg) ->
     console.log(msg.message.user)
     msg.send status.personal(msg.message.user)
 
   ##
   # Responds with details about my user
-  robot.respond /scrum/i, (msg) ->
+  robot.hear /scrum/i, (msg) ->
     console.log(msg.message.user)
     msg.send status.personal(msg.message.user)
 
   ##
   # Responds with the points for everyone on the team
-  robot.respond /scrum leaderboard/i, (msg) ->
+  robot.hear /scrum leaderboard/i, (msg) ->
     msg.send status.leaderboard(scrum.participants())
 
-  robot.respond /scrum summary/i, (msg) ->
+  robot.hear /andrew score/i, (msg) ->
+    msg.send "Andrew has #{andrew.points} name: #{andrew.name}"
+
+  robot.hear /scrum summary/i, (msg) ->
     msg.send status.summary(scrum.participants())
-
-
-  ##### Making Redis Objects
-  # creating, storing getting
-  scrumBrain =
-
-    addToScrum:
-      (user, key, vaue) ->
-        client.hmset()
-
-    newEntry:
-      (user, scrum) ->
