@@ -106,9 +106,6 @@ module.exports = (robot) ->
     #   - we scan back and total up all their points ever, grouping
     #     the consecutive ones and applying the appropriate bonus points
     #     for those instances
-    #
-    #
-
 
     ##
     # Adds the user's entry to the category
@@ -118,39 +115,37 @@ module.exports = (robot) ->
       key = user + ":" + category
       client.lpush(key, message)
 
+    # if the user has filled out a required category...
     givePoints: (user, category) ->
       key = user + ":" + category
       unless client.exists(key) is 0 and REQUIRED_CATEGORIES.indexOf(category)
         client.zadd("scrum", 5, user)
 
-    tally: (user) ->
-      client.zscore("scrum", user, (err, response) ->
-        if response
-          console.log("Tally says " + user + " has " + response)
-          response
-        else
-          console.log("tallyError: didn't get a response got \'" + response + "\'" )
-      )
-
     # takes a user and a callback
-    # the callback should accept the same arguments
-    getScore: (username, cb) ->
-      client.zscore("scrum", username, (err, score) ->
-        if score
-          return cb(score)
+    # the callback is going to receive the score for the user
+    getScore: (user, fn) ->
+      client.zscore("scrum", user.name, (err, scoreFromRedis) ->
+        if scoreFromRedis
+          user.score = scoreFromRedis
+          fn(user)
         else
           console.log(
-            "getScoreError: didn't get a response got \' #{score} \'\n" + "User was: #{username}"
+            "getScoreError: didn't get a response got \' #{scoreFromRedis} \'\n" + "User was: #{user.name}"
           )
       )
 
-    ##
-    # Tally up all the users points
-    tallyTeam: (users) ->
-      if users
-        ( tally(user) for user in users )
-      else
-        console.log("tallyTeamError: No users Given")
+    # TODO: JP
+    # Fix me! maybe use promises here?
+    getScores: (users, fn) ->
+      for user in users
+        client.zscore("scrum", user.name, (err, scoreFromRedis) ->
+          if scoreFromRedis
+            user.score = scoreFromRedis
+          else
+            console.log(
+              "getScoreError: didn't get a response got \' #{scoreFromRedis} \'\n" + "User was: #{user.name}"
+            )
+        ).then(fn(users))
 
     ##
     # Particpating in the scrum currently depends on hubot-auth and the
@@ -172,7 +167,6 @@ module.exports = (robot) ->
     today: ->
       new Date().toJSON().slice(0,10)
 
-
     ##
     # Mail the scrum participants
     mail: ->
@@ -191,14 +185,14 @@ module.exports = (robot) ->
   ##
   # Messages presented to the channel, via DM, or email
   status =
-    sersonal: (user) ->
+    personal: (user) ->
       source = """
         =------------------------------------------=
         hey {{user}}, You have {{score}} points.
         =------------------------------------------=
       """
       template = Handlebars.compile(source)
-      template({ user: user.name, score: scrum.getScore(user.name) })
+      template({ user: user.name, score: user.score })
 
     leaderboard: (users) ->
       source = """
@@ -247,25 +241,26 @@ module.exports = (robot) ->
   # ======================================================================== #
   #                           Experiment Here!                               #
   # ======================================================================== #
+
   class User
-    constructor: (@name) ->
-      client.zscore("scrum", @name, (err, resp) ->
-        if resp
-          @score = resp
-      )
+    constructor: (@name, @score = 0) ->
+
+    getScore: ->
+      updateScore()
+      return @score
 
     setScore: (redis_score) =>
+      console.log("Setting Score to #{redis_score} from #{@score}")
       @score = redis_score
 
-    updateScore: (cb) ->
+    updateScore: ->
       client.zscore("scrum", @name, (err, resp) ->
-        if resp
-          cb(resp)
+        console.log("I am in updateScore, resp is: #{resp}")
+        return @.setScore(resp)
       )
 
     awardPoints: ->
       client.zadd("scrum", 10, @name)
-      @.updateScore(@.setScore)
 
     stats: ->
       console.log("#{@name} has #{@points} Points!")
@@ -283,31 +278,33 @@ module.exports = (robot) ->
   jp.today("Dishes!")
   jp.blockers("Too many bottle caps in the garbage disposal")
   jp.yesterday( "Partied!!!!")
+  jp.awardPoints
 
   andrew = new User "andrew"
   andrew.today("Watched videos and played some games, fostdom")
   andrew.blockers("None!  more work! Bring it on!")
   andrew.yesterday("Paired with JP and fixed the computer box!")
   andrew.awardPoints()
-  console.log(andrew.points)
-  #      SCORE = 0
-  #      setScore = (resp) ->
-  #        console.log("SCORE const being set to:" + resp)
-  #        SCORE = resp
 
   users = [jp, andrew]
 
-  setTimeout(
+  # it's alive!
+  printPersonalStatus = (user) ->
+    console.log( status.personal(user) )
+
+  scrum.getScore( user, printPersonalStatus ) for user in users
+
+
+  printLeaderboard = (users) ->
     console.log( status.leaderboard(users) )
-  , 10000)
-  #console.log("Score: " + scrum.getScore(jp.name, setScore)
-  #console.log("getNormalScore Return: " + scrum.getScore(jp.name, setScore) )
+
+  # TODO: JP make this work:
+  # scrum.getScores( users, printLeaderBoard )
+
 
   # ======================================================================== #
   #                           Stop Experimenting                             #
   # ======================================================================== #
-
-
 
   # Schedule the Reminder with a direct message so they don't forget
   # Don't send this if they already sent it in
