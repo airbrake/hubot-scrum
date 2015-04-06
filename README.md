@@ -33,3 +33,12 @@ Include package in Hubot's `external-scripts.json`:
     hubot scrum help                       # displays this help message
 
 
+## Development
+
+The best way is to use `npm link`:
+
+```
+hubot-scrum$ npm link
+hubot-scrum$ cd /path/to/your/hubot
+hubot$ npm link hubot-scrum
+hubot$ bin/hubot
