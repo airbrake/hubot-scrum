@@ -69,7 +69,7 @@ FROM_USER = process.env.HUBOT_SCRUM_FROM_USER || "noreply+scrumbot@example.com"
 Handlebars = require('handlebars')
 
 # Models
-Team = require('./models/team')
+# Team = require('./models/team')
 Player = require('./models/player')
 Scrum = require('./models/scrum')
 
@@ -77,12 +77,30 @@ Scrum = require('./models/scrum')
 # Robot
 module.exports = (robot) ->
 
-  ## 
+  ##
   # Initialize the scrum
   scrum = new Scrum(robot)
 
-  console.log("Hey #{process.env.REDIS_URL}\nREDISTOGO_URL: #{process.env.REDISTOGO_URL} ")
-  
+  robot.respond /today (.*)/i, (msg) ->
+    player = Player.fromMessage(robot, msg)
+    player.entry("today", msg.match[1])
+
+  robot.respond /whoami/i, (msg) ->
+    player = Player.fromMessage(robot, msg)
+    msg.reply "Your name is: #{player.name}"
+
+  ##
+  # Response section
+  robot.respond /scrum players/i, (msg) ->
+    list = scrum.players().map (player) -> "#{player.name}: #{player.score}"
+    msg.reply list.join("\n") || "Nobody is in the scrum!"
+
+  robot.respond /scrum prompt @?([\w .\-]+)\?*$/i, (msg) ->
+    name = msg.match[1].trim()
+    msg.reply msg.user
+    player = scrum.player(name)
+    scrum.prompt(player, "yay")
+
   ##
   # Define the schedule
   schedule =
@@ -145,19 +163,4 @@ module.exports = (robot) ->
       template = Handlebars.compile(source)
       # Users will be users:[{name:"", today:"", yesterday:"", blockers:""}]
       template({users: users, date: scrum.today()})
-  
-
-  robot.respond /scrum players/i, (msg) ->
-    list = scrum.players().map (player) -> "#{player.name}: #{player.score}"
-    msg.reply list.join("\n") || "Nobody is in the scrum!"
-
-  robot.respond /scrum prompt @?([\w .\-]+)\?*$/i, (msg) ->
-    name = msg.match[1].trim()
-    player = scrum.player(name)
-    scrum.prompt(player, "yay")
-
-  # setInterval ->
-  #   for player in scrum.players()
-  #     scrum.prompt(player, "yay")
-  # , 1000
 
