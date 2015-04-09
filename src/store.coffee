@@ -11,6 +11,7 @@ Store =
   client: ->
     redisEnvVal = process.env.REDIS_URL || 'redis://localhost:6379'
     redisUrl = Url.parse(redisEnvVal)
+    console.log("<STORE:CONNECTED> #{redisEnvVal}")
     client = Redis.createClient(redisUrl.port, redisUrl.hostname)
     client.on "error", (err) ->
       console.error("RedisError: " + err)

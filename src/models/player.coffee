@@ -12,6 +12,15 @@ class Player extends Module
       user = users[0]
     return new Player(user)
 
+  ##
+  # Class functions
+  @.fromMessage = (robot, msg) ->
+    name = msg.
+    users = robot.brain.usersForFuzzyName(name)
+    if users.length is 1
+      user = users[0]
+    return new Player(user)
+
    @.dm = (robot, name, message) ->
     users = robot.brain.usersForFuzzyName(name)
     if users.length is 1
