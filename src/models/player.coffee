@@ -1,8 +1,14 @@
-Module = require('../module')
 Store = require('../store')
+console.log("Require is:", require('../store'))
+console.log("OUTER Store is:", Store)
 
-class Player extends Module
-  @extend Store
+class Player
+
+  @.client = ->
+    store = Store.new
+    # error is here!
+    # What is store?
+    console.log("Store is:", store)
 
   ##
   # Class functions
@@ -15,7 +21,8 @@ class Player extends Module
   ##
   # Class functions
   @.fromMessage = (robot, msg) ->
-    name = msg.
+    console.log( "Client: ", @.client() )
+    name = msg.envelope.user.name
     users = robot.brain.usersForFuzzyName(name)
     if users.length is 1
       user = users[0]
@@ -39,13 +46,15 @@ class Player extends Module
   entry: (category, message) ->
     @.givePoints(@email, category)
     key = @email + ":" + category
-    client.lpush(key, message)
+    @client().lpush(key, message)
 
  # if the player has filled out a required category reward them
   givePoints: (category) ->
+    unit = 5
     key = @email + ":" + category
-    unless client.exists(key) is 0 and ["today", "yesterday"].indexOf(category)
-      client.zadd("scrum", 5, @email)
+    unless @client().exists(key) is 0 and ["today", "yesterday"].indexOf(category)
+      @client().zadd("scrum", unit, @email)
+      @score += unit
 
   ##
   # Instance functions
@@ -61,13 +70,13 @@ class Player extends Module
     @score = redis_score
 
   updateScore: ->
-    Store.client().zscore("scrum", @name, (err, resp) ->
+    @client().zscore("scrum", @name, (err, resp) ->
       console.log("I am in updateScore, resp is: #{resp}")
       return @.setScore(resp)
     )
 
   awardPoints: ->
-    Store.client().zadd("scrum", 10, @name)
+    @client().zadd("scrum", 10, @name)
 
   stats: ->
     console.log("#{@name} has #{@points} Points!")

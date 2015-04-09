@@ -81,9 +81,14 @@ module.exports = (robot) ->
   # Initialize the scrum
   scrum = new Scrum(robot)
 
+  robot.respond /today (.*)/i, (msg) ->
+    player = Player.fromMessage(robot, msg)
+    player.entry("today", msg.match[1])
+
   robot.respond /whoami/i, (msg) ->
-    email = Player.fromMessage(msg)
-    msg.reply "Don't be silly! You are #{email}"
+    player = Player.fromMessage(robot, msg)
+    console.log("<whoami> #{player}")
+    msg.reply "Your name is: #{player.name}"
 
   ##
   # Response section
