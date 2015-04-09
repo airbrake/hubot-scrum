@@ -1,4 +1,4 @@
-client = require('./store')
+client = require('../redis-store')
 
 class Player
 

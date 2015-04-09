@@ -1,6 +1,8 @@
 Team = require('./team')
 Player = require('./player')
-client = require('./store')
+
+# Connect to Redis
+client = require('../redis-store')
 
 class Scrum
   constructor: (robot) ->

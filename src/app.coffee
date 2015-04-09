@@ -70,8 +70,8 @@ Handlebars = require('handlebars')
 
 # Models
 # Team = require('./models/team')
-Player = require('./player')
-Scrum = require('./scrum')
+Player = require('./models/player')
+Scrum = require('./models/scrum')
 
 ##
 # Robot
@@ -87,7 +87,6 @@ module.exports = (robot) ->
 
   robot.respond /whoami/i, (msg) ->
     player = Player.fromMessage(robot, msg)
-    console.log("<whoami> #{player}")
     msg.reply "Your name is: #{player.name}"
 
   ##
