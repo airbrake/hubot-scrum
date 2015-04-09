@@ -81,6 +81,8 @@ module.exports = (robot) ->
   # Initialize the scrum
   scrum = new Scrum(robot)
 
+  console.log("Hey #{process.env.REDIS_URL}\nREDISTOGO_URL: #{process.env.REDISTOGO_URL} ")
+  
   ##
   # Define the schedule
   schedule =
