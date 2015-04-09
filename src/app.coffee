@@ -82,16 +82,17 @@ module.exports = (robot) ->
   scrum = new Scrum(robot)
 
   robot.respond /today (.*)/i, (msg) ->
-    player = Player.fromMessage(robot, msg)
+    player = Player.fromMessage(msg)
     player.entry("today", msg.match[1])
 
   robot.respond /whoami/i, (msg) ->
-    player = Player.fromMessage(robot, msg)
+    player = Player.fromMessage(msg)
     msg.reply "Your name is: #{player.name}"
 
   ##
   # Response section
   robot.respond /scrum players/i, (msg) ->
+    console.log scrum.players()
     list = scrum.players().map (player) -> "#{player.name}: #{player.score}"
     msg.reply list.join("\n") || "Nobody is in the scrum!"
 

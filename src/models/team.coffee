@@ -21,7 +21,7 @@ class Team
     for own key, user of @robot.brain.data.users
       roles = user.roles or []
       if 'scrum' in roles
-        players.push new Player(@robot, user)
+        players.push new Player(user)
     return players
 
   ##

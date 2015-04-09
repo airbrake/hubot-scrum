@@ -23,6 +23,9 @@ class Scrum
   prompt: (player, message) ->
     Player.dm(@robot, player.name, message)
 
+  demo: ->
+    
+
   # FIXME: This should take a player object
   # and return the total points they have
   # there are a few ways to do this:

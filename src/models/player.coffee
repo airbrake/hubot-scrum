@@ -12,12 +12,8 @@ class Player
 
   ##
   # Class functions
-  @.fromMessage = (robot, msg) ->
-    name = msg.envelope.user.name
-    users = robot.brain.usersForFuzzyName(name)
-    if users.length is 1
-      user = users[0]
-    return new Player(user)
+  @.fromMessage = (msg) ->
+    return new Player(msg.envelope.user)
 
    @.dm = (robot, name, message) ->
     users = robot.brain.usersForFuzzyName(name)
@@ -56,7 +52,7 @@ class Player
     updateScore()
     return @score
 
-  setScore: (redis_score) =>
+  setScore: (redis_score) ->
     console.log("Setting Score to #{redis_score} from #{@score}")
     @score = redis_score
 
