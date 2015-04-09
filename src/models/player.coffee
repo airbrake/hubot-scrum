@@ -25,6 +25,19 @@ class Player extends Module
     @email = user.email_address
     @score = 0
 
+  # Adds the player's entry to the category
+  #
+  entry: (category, message) ->
+    @.givePoints(@email, category)
+    key = @email + ":" + category
+    client.lpush(key, message)
+
+ # if the player has filled out a required category reward them
+  givePoints: (category) ->
+    key = @email + ":" + category
+    unless client.exists(key) is 0 and ["today", "yesterday"].indexOf(category)
+      client.zadd("scrum", 5, @email)
+
   ##
   # Instance functions
   prompt: (message) ->
@@ -58,7 +71,7 @@ class Player extends Module
 
   blockers: (message) ->
     scrum.entry(@name, "blockers", message)
-  
+
   mail: (subject, body) ->
     mailgun.sendText "noreply+scrumbot@example.com", [
       ["#{@name} <#{@email}>"]

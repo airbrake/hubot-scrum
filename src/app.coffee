@@ -77,9 +77,21 @@ Scrum = require('./models/scrum')
 # Robot
 module.exports = (robot) ->
 
-  ## 
+  ##
   # Initialize the scrum
   scrum = new Scrum(robot)
+
+  ##
+  # Response section
+  robot.respond /scrum players/i, (msg) ->
+    list = scrum.players().map (player) -> "#{player.name}: #{player.score}"
+    msg.reply list.join("\n") || "Nobody is in the scrum!"
+
+  robot.respond /scrum prompt @?([\w .\-]+)\?*$/i, (msg) ->
+    name = msg.match[1].trim()
+    msg.reply msg.user
+    player = scrum.player(name)
+    scrum.prompt(player, "yay")
 
   ##
   # Define the schedule
@@ -143,16 +155,7 @@ module.exports = (robot) ->
       template = Handlebars.compile(source)
       # Users will be users:[{name:"", today:"", yesterday:"", blockers:""}]
       template({users: users, date: scrum.today()})
-  
 
-  robot.respond /scrum players/i, (msg) ->
-    list = scrum.players().map (player) -> "#{player.name}: #{player.score}"
-    msg.reply list.join("\n") || "Nobody is in the scrum!"
-
-  robot.respond /scrum prompt @?([\w .\-]+)\?*$/i, (msg) ->
-    name = msg.match[1].trim()
-    player = scrum.player(name)
-    scrum.prompt(player, "yay")
 
   # setInterval ->
   #   for player in scrum.players()
