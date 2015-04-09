@@ -7,22 +7,20 @@
 Redis = require('redis')
 Url = require('url')
 
-class Store
-
-  @.client = ->
-    console.log("HEY")
+redisStore =
+  client: (message) ->
     redisEnvVal = process.env.REDIS_URL || 'redis://localhost:6379'
     redisUrl = Url.parse(redisEnvVal)
     client = Redis.createClient(redisUrl.port, redisUrl.hostname)
+    
     client.on "error", (err) ->
       console.error("RedisError: " + err)
+    
     if redisUrl.auth != null
       client.auth(redisUrl.auth.split(':').pop())
+   
+    console.log 'Connected to Redis at', redisUrl
     return client
 
-  #find: (id) ->
-  #create: (attrs) ->
-  #extended: ->
-  #  @include
-  #    save: ->
-  #      console.log('save')
+module.exports = redisStore.client
+

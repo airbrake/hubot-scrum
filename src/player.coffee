@@ -1,14 +1,6 @@
-Store = require('../store')
-console.log("Require is:", require('../store'))
-console.log("OUTER Store is:", Store)
+client = require('./store')
 
 class Player
-
-  @.client = ->
-    store = Store.new
-    # error is here!
-    # What is store?
-    console.log("Store is:", store)
 
   ##
   # Class functions
@@ -21,7 +13,6 @@ class Player
   ##
   # Class functions
   @.fromMessage = (robot, msg) ->
-    console.log( "Client: ", @.client() )
     name = msg.envelope.user.name
     users = robot.brain.usersForFuzzyName(name)
     if users.length is 1
@@ -46,14 +37,14 @@ class Player
   entry: (category, message) ->
     @.givePoints(@email, category)
     key = @email + ":" + category
-    @client().lpush(key, message)
+    client().lpush(key, message)
 
  # if the player has filled out a required category reward them
   givePoints: (category) ->
     unit = 5
     key = @email + ":" + category
-    unless @client().exists(key) is 0 and ["today", "yesterday"].indexOf(category)
-      @client().zadd("scrum", unit, @email)
+    unless client().exists(key) is 0 and ["today", "yesterday"].indexOf(category)
+      client().zadd("scrum", unit, @email)
       @score += unit
 
   ##
@@ -70,13 +61,13 @@ class Player
     @score = redis_score
 
   updateScore: ->
-    @client().zscore("scrum", @name, (err, resp) ->
+    client().zscore("scrum", @name, (err, resp) ->
       console.log("I am in updateScore, resp is: #{resp}")
       return @.setScore(resp)
     )
 
   awardPoints: ->
-    @client().zadd("scrum", 10, @name)
+    client().zadd("scrum", 10, @name)
 
   stats: ->
     console.log("#{@name} has #{@points} Points!")

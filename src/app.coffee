@@ -69,9 +69,9 @@ FROM_USER = process.env.HUBOT_SCRUM_FROM_USER || "noreply+scrumbot@example.com"
 Handlebars = require('handlebars')
 
 # Models
-Team = require('./models/team')
-Player = require('./models/player')
-Scrum = require('./models/scrum')
+# Team = require('./models/team')
+Player = require('./player')
+Scrum = require('./scrum')
 
 ##
 # Robot
@@ -164,10 +164,4 @@ module.exports = (robot) ->
       template = Handlebars.compile(source)
       # Users will be users:[{name:"", today:"", yesterday:"", blockers:""}]
       template({users: users, date: scrum.today()})
-
-
-  # setInterval ->
-  #   for player in scrum.players()
-  #     scrum.prompt(player, "yay")
-  # , 1000
 

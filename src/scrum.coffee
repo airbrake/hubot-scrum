@@ -1,6 +1,6 @@
 Team = require('./team')
 Player = require('./player')
-Store = require('../store.coffee')
+client = require('./store')
 
 class Scrum
   constructor: (robot) ->
@@ -37,7 +37,7 @@ class Scrum
   # takes a player and a callback
   # the callback is going to receive the score for the player
   getScore: (player, fn) ->
-    Store.client.zscore("scrum", player.name, (err, scoreFromRedis) ->
+    client().zscore("scrum", player.name, (err, scoreFromRedis) ->
       if scoreFromRedis
         player.score = scoreFromRedis
         fn(player)
@@ -51,7 +51,7 @@ class Scrum
   # Fix me! maybe use promises here?
   getScores: (players, fn) ->
     for player in players
-      Store.client.zscore("scrum", player.name, (err, scoreFromRedis) ->
+      client().zscore("scrum", player.name, (err, scoreFromRedis) ->
         if scoreFromRedis
           player.score = scoreFromRedis
         else
